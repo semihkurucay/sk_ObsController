@@ -17,6 +17,7 @@ import com.github.kwhat.jnativehook.GlobalScreen;
 import com.github.kwhat.jnativehook.NativeHookException;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
+import javax.swing.JDialog;
 
 /**
  *
@@ -30,7 +31,9 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
     private Properties prop = new Properties();
     private File propFile = null;
     private OBSRemoteController controller;
-
+    private JDialog dialog = new JDialog(this, true);
+    private boolean obsConnect = false;
+    
     private String scane1 = "", scane2 = "", scane3 = "", scane4 = "", scane5 = "";
 
     /**
@@ -39,9 +42,10 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
     public main() {
         initComponents();
         this.setIconImage(new ImageIcon(getClass().getResource("/icon.png")).getImage());
-
-        JOptionPane.showMessageDialog(null, "OBS Controller programına hoş geldiniz ve iyi yayınlar dileriz.\nhttps://github.com/semihkurucay", "SK Yazılım", -1);
+        dialog.setAlwaysOnTop(true);
         
+        JOptionPane.showMessageDialog(dialog, "OBS Controller programına hoş geldiniz ve iyi yayınlar dileriz.\nhttps://github.com/semihkurucay", "SK Yazılım", -1);
+
         rememberMeMange();
 
         listenKey();
@@ -63,7 +67,7 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
 
         controlerConnect();
     }
-
+    
     private void listenKey() {
         log = Logger.getLogger(GlobalScreen.class.getPackage().getName());
         log.setLevel(Level.OFF);
@@ -72,7 +76,7 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
         try {
             GlobalScreen.registerNativeHook();
         } catch (NativeHookException ex) {
-            JOptionPane.showMessageDialog(null, "Kalvye kısa yolları çalışmıyor.", "Kısa Yollar Çalışmıyor", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "Kalvye kısa yolları çalışmıyor.", "Kısa Yollar Çalışmıyor", JOptionPane.ERROR_MESSAGE);
         }
 
         GlobalScreen.addNativeKeyListener(this);
@@ -135,7 +139,7 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
 
     private void createRememberMe() {
         try {
-            prop.setProperty("HOST", "localhost");
+            prop.setProperty("HOST", "192.165.1.8");
             prop.setProperty("PORT", "4455");
             prop.setProperty("PASSWORD", "");
             prop.setProperty("scane1", "");
@@ -147,10 +151,10 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
             try (FileOutputStream fos = new FileOutputStream(propFile)) {
                 prop.store(fos, "create");
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Beni hatırla dosyası oluşturulurken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Beni hatırla dosyası oluşturulurken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Beni hatırla dosyası oluşturulurken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "Beni hatırla dosyası oluşturulurken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -158,7 +162,7 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
         try (FileInputStream fis = new FileInputStream(propFile)) {
             prop.load(fis);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Beni hatırla bilgileri getiremedi!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "Beni hatırla bilgileri getiremedi!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -168,7 +172,7 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
         try (FileOutputStream fop = new FileOutputStream(propFile)) {
             prop.store(fop, "rememberMe");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Beni hatırla kaydedilirken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "Beni hatırla kaydedilirken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -184,12 +188,14 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
                 .connectionTimeout(3)
                 .lifecycle()
                 .onReady(() -> {
+                    obsConnect = true;
                     this.setTitle("SK OBS Controller [OBS Bağlı]");
-                    JOptionPane.showMessageDialog(null, "Bağlantı Başarılı!", "OBS Bağlanıldı", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Bağlantı Başarılı!", "OBS Bağlanıldı", JOptionPane.INFORMATION_MESSAGE);
                 })
                 .onDisconnect(() -> {
+                    obsConnect = false;
                     this.setTitle("SK OBS Controller [OBS Bağlı Değil]");
-                    JOptionPane.showMessageDialog(null, "Bağlantı Koptu!", "OBS Bağlanamadı", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Bağlantı Koptu!", "OBS Bağlanamadı", JOptionPane.ERROR_MESSAGE);
                 })
                 .and()
                 .build();
@@ -197,74 +203,63 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
         controller.connect();
     }
 
-    private void changeScane(String scane) {
-        if (controller == null) {
-            JOptionPane.showMessageDialog(null, "OBS Bağlı değil, tekrar bağlanılıyor!\nTekrar deneyin!", "OBS Bağlanıyor", JOptionPane.WARNING_MESSAGE);
-            controlerConnect();
-            return;
+    private boolean isObsConnect() {
+        if (!obsConnect) {
+            JOptionPane.showMessageDialog(dialog, "OBS bağlı değil, lütfen yeniden bağnatı kurun!", "OBS Bağlı Değil", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
 
-        controller.setCurrentProgramScene(scane, response -> {
-            if (!response.isSuccessful()) {
-                JOptionPane.showMessageDialog(null, "Sahne değişirken hata oluştu, sahne değişemedi!", "Sahne Değişmedi", JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        return true;
+    }
+
+    private void changeScane(String scane) {
+        if (isObsConnect()) {
+            controller.setCurrentProgramScene(scane, response -> {
+                if (!response.isSuccessful()) {
+                    JOptionPane.showMessageDialog(dialog, "Sahne değişirken hata oluştu, sahne değişemedi!", "Sahne Değişmedi", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        }
     }
 
     private void micMute() {
-        if (controller == null) {
-            JOptionPane.showMessageDialog(null, "OBS Bağlı değil, tekrar bağlanılıyor!\nTekrar deneyin!", "OBS Bağlanıyor", JOptionPane.WARNING_MESSAGE);
-            controlerConnect();
-            return;
+        if (isObsConnect()) {
+            controller.setInputMute("Mic/Aux", true, response -> {
+                if (!response.isSuccessful()) {
+                    JOptionPane.showMessageDialog(dialog, "Mikrafon sessize alınırken hata oluştu!", "Mikrafon Açık", JOptionPane.ERROR_MESSAGE);
+                }
+            });
         }
-
-        controller.setInputMute("Mic/Aux", true, response -> {
-            if (!response.isSuccessful()) {
-                JOptionPane.showMessageDialog(null, "Mikrafon sessize alınırken hata oluştu!", "Mikrafon Açık", JOptionPane.ERROR_MESSAGE);
-            }
-        });
     }
 
     private void micUnmute() {
-        if (controller == null) {
-            JOptionPane.showMessageDialog(null, "OBS Bağlı değil, tekrar bağlanılıyor!\nTekrar deneyin!", "OBS Bağlanıyor", JOptionPane.WARNING_MESSAGE);
-            controlerConnect();
-            return;
+        if (isObsConnect()) {
+            controller.setInputMute("Mic/Aux", false, response -> {
+                if (!response.isSuccessful()) {
+                    JOptionPane.showMessageDialog(dialog, "Mikrafon ses açılırken hata oluştu!", "Mikrafon Kapalı", JOptionPane.ERROR_MESSAGE);
+                }
+            });
         }
-
-        controller.setInputMute("Mic/Aux", false, response -> {
-            if (!response.isSuccessful()) {
-                JOptionPane.showMessageDialog(null, "Mikrafon ses açılırken hata oluştu!", "Mikrafon Kapalı", JOptionPane.ERROR_MESSAGE);
-            }
-        });
     }
 
     private void audioMute() {
-        if (controller == null) {
-            JOptionPane.showMessageDialog(null, "OBS Bağlı değil, tekrar bağlanılıyor!\nTekrar deneyin!", "OBS Bağlanıyor", JOptionPane.WARNING_MESSAGE);
-            controlerConnect();
-            return;
+        if (isObsConnect()) {
+            controller.setInputMute("Masaüstü Ses", true, response -> {
+                if (!response.isSuccessful()) {
+                    JOptionPane.showMessageDialog(dialog, "Masaüstü ses sessize alınırken hata oluştu!", "Ses Açık", JOptionPane.ERROR_MESSAGE);
+                }
+            });
         }
-
-        controller.setInputMute("Masaüstü Ses", true, response -> {
-            if (!response.isSuccessful()) {
-                JOptionPane.showMessageDialog(null, "Masaüstü ses sessize alınırken hata oluştu!", "Ses Açık", JOptionPane.ERROR_MESSAGE);
-            }
-        });
     }
 
     private void audioUnmute() {
-        if (controller == null) {
-            JOptionPane.showMessageDialog(null, "OBS Bağlı değil, tekrar bağlanılıyor!\nTekrar deneyin!", "OBS Bağlanıyor", JOptionPane.WARNING_MESSAGE);
-            controlerConnect();
-            return;
+        if (isObsConnect()) {
+            controller.setInputMute("Masaüstü Ses", false, response -> {
+                if (!response.isSuccessful()) {
+                    JOptionPane.showMessageDialog(dialog, "Masaüstü ses açılırken hata oluştu!", "Ses Kapalı", JOptionPane.ERROR_MESSAGE);
+                }
+            });
         }
-
-        controller.setInputMute("Masaüstü Ses", false, response -> {
-            if (!response.isSuccessful()) {
-                JOptionPane.showMessageDialog(null, "Masaüstü ses açılırken hata oluştu!", "Ses Kapalı", JOptionPane.ERROR_MESSAGE);
-            }
-        });
     }
 
     /**
@@ -632,42 +627,42 @@ public class main extends javax.swing.JFrame implements NativeKeyListener {
 
     private void lbl1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lbl1MouseClicked
         // TODO add your handling code here:
-        scane1 = JOptionPane.showInputDialog(null, "1. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
+        scane1 = JOptionPane.showInputDialog(dialog, "1. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
         save("scane1", scane1);
         btn1.setText(scane1);
     }//GEN-LAST:event_lbl1MouseClicked
 
     private void lbl2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lbl2MouseClicked
         // TODO add your handling code here:
-        scane2 = JOptionPane.showInputDialog(null, "2. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
+        scane2 = JOptionPane.showInputDialog(dialog, "2. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
         save("scane2", scane2);
         btn2.setText(scane2);
     }//GEN-LAST:event_lbl2MouseClicked
 
     private void lbl3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lbl3MouseClicked
         // TODO add your handling code here:
-        scane3 = JOptionPane.showInputDialog(null, "3. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
+        scane3 = JOptionPane.showInputDialog(dialog, "3. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
         save("scane3", scane3);
         btn3.setText(scane3);
     }//GEN-LAST:event_lbl3MouseClicked
 
     private void lbl4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lbl4MouseClicked
         // TODO add your handling code here:
-        scane4 = JOptionPane.showInputDialog(null, "4. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
+        scane4 = JOptionPane.showInputDialog(dialog, "4. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
         save("scane4", scane4);
         btn4.setText(scane4);
     }//GEN-LAST:event_lbl4MouseClicked
 
     private void lbl5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lbl5MouseClicked
         // TODO add your handling code here:
-        scane5 = JOptionPane.showInputDialog(null, "5. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
+        scane5 = JOptionPane.showInputDialog(dialog, "5. Butona Tam Sahne Adınızı Girin", "Sahne Adı Güncelleme", JOptionPane.WARNING_MESSAGE);
         save("scane5", scane5);
         btn5.setText(scane5);
     }//GEN-LAST:event_lbl5MouseClicked
 
     private void btnObsSettingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnObsSettingActionPerformed
         // TODO add your handling code here:
-        setting set = new setting(prop, propFile);
+        setting set = new setting(prop, propFile, dialog);
         set.setVisible(true);
     }//GEN-LAST:event_btnObsSettingActionPerformed
 

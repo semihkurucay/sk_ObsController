@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Properties;
 import javax.swing.ImageIcon;
+import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 
 /**
@@ -25,12 +26,13 @@ public class setting extends javax.swing.JFrame {
         initComponents();
     }
 
-    public setting(Properties prop, File propFile) {
+    public setting(Properties prop, File propFile, JDialog dialog) {
         initComponents();
         this.setIconImage(new ImageIcon(getClass().getResource("/icon.png")).getImage());
 
         this.prop = prop;
         this.propFile = propFile;
+        this.dialog = dialog;
 
         txtHost.setText(getPropValue("HOST"));
         txtPort.setText(getPropValue("PORT"));
@@ -39,6 +41,7 @@ public class setting extends javax.swing.JFrame {
 
     private Properties prop = null;
     private File propFile = null;
+    private JDialog dialog = null;
 
     private void save() {
         prop.setProperty("HOST", txtHost.getText());
@@ -48,7 +51,7 @@ public class setting extends javax.swing.JFrame {
         try (FileOutputStream fop = new FileOutputStream(propFile)) {
             prop.store(fop, "rememberMe");
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Beni hatırla kaydedilirken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "Beni hatırla kaydedilirken hata çıktı!", "Beni Hatırla", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -165,9 +168,9 @@ public class setting extends javax.swing.JFrame {
         // TODO add your handling code here:
         if (txtPort.getText().matches("^[0-9]{1,}$")) {
             save();
-            JOptionPane.showMessageDialog(null, "OBS ayarları başarıyla kaydedildi.", "OBS Sistem Ayar", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "OBS ayarları başarıyla kaydedildi.", "OBS Sistem Ayar", JOptionPane.INFORMATION_MESSAGE);
         } else {
-            JOptionPane.showMessageDialog(null, "Hatalı port girişi. Sadece sayı girin.", "Hatalı Port Giriş", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(dialog, "Hatalı port girişi. Sadece sayı girin.", "Hatalı Port Giriş", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_btnUpdateActionPerformed
 
